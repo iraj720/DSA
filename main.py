@@ -3,7 +3,6 @@ import random
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-# Simulation Parameters
 OPERATIONAL_AREA = 0.5  # square miles
 MIN_TX_TX_SEPARATION = 10  # meters
 TX_RX_SEPARATION_RANGE = (10, 100)  # meters
@@ -11,22 +10,15 @@ FREQUENCY_SHIFT = 1  # MHz
 POWER_MARGIN_THRESHOLD = 3  # dB
 NUM_LINKS = 20  # Adjust this to simulate different network sizes
 NUM_TRIALS = 1  # Number of simulation runs
-
-# Constants
 SPEED_OF_LIGHT = 3e8  # m/s
-
-# M-Sequence Codes (Simplified Representation)
 AVAILABLE_CODES = [f"Code_{i}" for i in range(1, 11)]  # 10 unique codes
 
-# Helper Functions
 def path_loss(distances):
-    """Calculate path loss using a free-space path loss model."""
     frequency = 2.4e9  # Hz (Assuming operation in the 2.4 GHz band)
     pl = 20 * np.log10(distances + 1e-6) + 20 * np.log10(frequency) + 20 * np.log10(4 * np.pi / SPEED_OF_LIGHT)
     return pl  # in dB
 
 def cross_correlation_matrix(codes):
-    """Calculate cross-correlation matrix between codes."""
     num_codes = len(codes)
     corr_matrix = np.full((num_codes, num_codes), 0.1)  # Default low cross-correlation
     for i in range(num_codes):
@@ -35,7 +27,6 @@ def cross_correlation_matrix(codes):
 
 # Main Algorithm
 def spectrum_deconfliction(positions):
-    """Implement the Spectrum Deconfliction algorithm with M-sequence codes."""
     num_devices = len(positions)
     tx_positions = np.array([tx for tx, _ in positions])
     rx_positions = np.array([rx for _, rx in positions])
@@ -117,12 +108,10 @@ def spectrum_deconfliction(positions):
 
     return frequency_channels, tx_powers, assigned_codes
 
-# Simulation Execution
 def run_simulation():
     positions = generate_positions(NUM_LINKS)
     frequency_channels, tx_powers, assigned_codes = spectrum_deconfliction(positions)
 
-    # Output results
     for i in range(NUM_LINKS):
         print(f"Link {i+1}:")
         print(f"  Tx Position: {positions[i][0]}")
@@ -131,12 +120,10 @@ def run_simulation():
         print(f"  Assigned Code: {assigned_codes[i]}")
         print(f"  Tx Power Adjustment: {tx_powers[i]:.2f} dB\n")
 
-    # Visualizations
     plot_network(positions, frequency_channels, assigned_codes)
     plot_frequency_allocation(frequency_channels, assigned_codes)
 
 def generate_positions(num_links):
-    """Generate random positions for Tx/Rx pairs."""
     area_side = np.sqrt(OPERATIONAL_AREA * 2.59e6)  # Convert square miles to square meters
     positions = []
     tx_positions = []
@@ -154,7 +141,6 @@ def generate_positions(num_links):
     return positions
 
 def plot_network(positions, frequency_channels, assigned_codes):
-    """Plot the network topology and frequency channel assignments."""
     plt.figure(figsize=(10, 10))
     unique_channels = np.unique(frequency_channels)
     colors = plt.cm.get_cmap('tab20', len(unique_channels))
@@ -176,7 +162,6 @@ def plot_network(positions, frequency_channels, assigned_codes):
     plt.show()
 
 def plot_frequency_allocation(frequency_channels, assigned_codes):
-    """Plot the frequency spectrum allocation map with code assignments."""
     plt.figure(figsize=(10, 2))
     num_channels = len(np.unique(frequency_channels))
     freq_min = frequency_channels.min()
@@ -199,5 +184,4 @@ def plot_frequency_allocation(frequency_channels, assigned_codes):
     plt.grid(axis='x')
     plt.show()
 
-# Run the simulation
 run_simulation()
