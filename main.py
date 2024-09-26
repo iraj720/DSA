@@ -3,26 +3,20 @@ import random
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-# Simulation Parameters
 OPERATIONAL_AREA = 0.5  # square miles
 MIN_TX_TX_SEPARATION = 10  # meters
 TX_RX_SEPARATION_RANGE = (10, 100)  # meters
 BANDWIDTH_RANGE = (1, 5)  # MHz, variable bandwidth per link
 POWER_MARGIN_THRESHOLD = 3  # dB
 NUM_LINKS = 20  # Number of links
-
-# Constants
 SPEED_OF_LIGHT = 3e8  # m/s
-FREQUENCY_MIN = 1000  # MHz, minimum frequency
-FREQUENCY_MAX = 1010  # MHz, maximum frequency
-FREQUENCY_STEP = 0.1  # MHz, step size for frequency segments
+FREQUENCY_MIN = 1000  
+FREQUENCY_MAX = 1010  
+FREQUENCY_STEP = 0.1 #  size of frequency measurment window
 
-# M-Sequence Codes (Simplified Representation)
 AVAILABLE_CODES = [f"Code_{i}" for i in range(1, 6)]  # 5 unique codes
 
-# Helper Functions
 def path_loss(distance):
-    """Calculate path loss using a free-space path loss model."""
     frequency = 2.4e9  # Hz (Assuming operation in the 2.4 GHz band)
     pl = 20 * np.log10(distance + 1e-6) + 20 * np.log10(frequency) + 20 * np.log10(4 * np.pi / SPEED_OF_LIGHT)
     return pl  # in dB
@@ -35,7 +29,6 @@ def cross_correlation(code1, code2):
         return 0.2  # Assume low cross-correlation for different codes
 
 def generate_positions(num_links):
-    """Generate random positions for Tx/Rx pairs."""
     area_side = np.sqrt(OPERATIONAL_AREA * 2.59e6)  # Convert square miles to square meters
     positions = []
     tx_positions = []
@@ -53,16 +46,13 @@ def generate_positions(num_links):
     return positions
 
 def spectrum_deconfliction(positions, bandwidths):
-    """Implement the Spectrum Deconfliction algorithm with variable start frequencies and optimization."""
     num_devices = len(positions)
     tx_positions = np.array([tx for tx, _ in positions])
     rx_positions = np.array([rx for _, rx in positions])
 
-    # Assign initial frequencies randomly within the available spectrum
     assigned_frequencies = np.array([random.uniform(FREQUENCY_MIN, FREQUENCY_MAX - bw) for bw in bandwidths])
     assigned_codes = [random.choice(AVAILABLE_CODES) for _ in range(num_devices)]
 
-    # Divide the spectrum into 0.1 MHz segments
     frequency_segments = np.arange(FREQUENCY_MIN, FREQUENCY_MAX + FREQUENCY_STEP, FREQUENCY_STEP)
 
     # Optimization loop
@@ -72,9 +62,7 @@ def spectrum_deconfliction(positions, bandwidths):
         total_interference = np.zeros(len(frequency_segments))
         changes_made = False
        
-        # Compute interference and cross-correlation
         for i in range(num_devices):
-            # each Link reaquest comes here
             freq_i_start = assigned_frequencies[i]
             freq_i_end = freq_i_start + bandwidths[i]
             idx_i_start = int((freq_i_start - FREQUENCY_MIN) / FREQUENCY_STEP)
@@ -90,7 +78,7 @@ def spectrum_deconfliction(positions, bandwidths):
 
                 overlapping_segments = segments_i & segments_j
                 if overlapping_segments:
-                    # Calculate interference between link i and link j
+
                     d_tx_i_rx_j = np.linalg.norm(tx_positions[i] - rx_positions[j])
                     d_tx_j_rx_i = np.linalg.norm(tx_positions[j] - rx_positions[i])
                     pl_tx_i_rx_j = path_loss(d_tx_i_rx_j)
@@ -100,12 +88,10 @@ def spectrum_deconfliction(positions, bandwidths):
                     interference_power_i_j = -pl_tx_i_rx_j + 10 * np.log10(code_corr)
                     interference_power_j_i = -pl_tx_j_rx_i + 10 * np.log10(code_corr)
 
-                    # Sum interference over overlapping segments
                     for seg in overlapping_segments:
                         total_interference[seg] += 10 ** (interference_power_i_j / 10)
                         total_interference[seg] += 10 ** (interference_power_j_i / 10)
 
-                    # If interference exceeds threshold, adjust frequencies or codes
                     if interference_power_i_j >= -100 or interference_power_j_i >= -100:
                         # Adjust frequencies
                         new_freq_i = assigned_frequencies[i] + random.uniform(-1, 1)
@@ -118,9 +104,12 @@ def spectrum_deconfliction(positions, bandwidths):
                         assigned_frequencies[i] = new_freq_i
                         assigned_frequencies[j] = new_freq_j
 
-                        # Optionally, change codes
                         available_codes_i = [code for code in AVAILABLE_CODES if code != assigned_codes[i]]
                         available_codes_j = [code for code in AVAILABLE_CODES if code != assigned_codes[j]]
+
+
+
+
                         if available_codes_i:
                             assigned_codes[i] = random.choice(available_codes_i)
                         if available_codes_j:
@@ -131,7 +120,6 @@ def spectrum_deconfliction(positions, bandwidths):
         if not changes_made:
             break  # Optimization converged
 
-    # Prepare frequency allocations for visualization
     frequency_allocations = []
     for i in range(num_devices):
         freq_start = assigned_frequencies[i]
@@ -141,7 +129,6 @@ def spectrum_deconfliction(positions, bandwidths):
     return frequency_allocations, assigned_codes, total_interference
 
 def plot_network(positions, assigned_codes):
-    """Plot the network topology and code assignments."""
     plt.figure(figsize=(10, 10))
     for i, ((tx_pos, rx_pos), code) in enumerate(zip(positions, assigned_codes)):
         plt.plot([tx_pos[0], rx_pos[0]], [tx_pos[1], rx_pos[1]], label=f"Link {i+1} ({code})")
@@ -155,16 +142,13 @@ def plot_network(positions, assigned_codes):
     plt.show()
 
 def plot_frequency_allocation(frequency_allocations, assigned_codes, bandwidths):
-    """Plot the frequency spectrum allocation map with overlaps."""
     plt.figure(figsize=(12, 4))
     freq_min = FREQUENCY_MIN
     freq_max = FREQUENCY_MAX
 
-    # Create a horizontal bar to represent the spectrum
     plt.barh(0, freq_max - freq_min, left=freq_min, height=0.5, align='edge',
              edgecolor='black', color='lightgrey', zorder=1)
 
-    # Plot each link's frequency allocation
     y_offset = 0.5  # Vertical offset for text labels
     for idx, (freq_alloc, code, bw) in enumerate(zip(frequency_allocations, assigned_codes, bandwidths)):
         bar = plt.barh(0, freq_alloc[1] - freq_alloc[0], left=freq_alloc[0], height=0.5, align='edge',
@@ -215,5 +199,4 @@ def run_simulation():
     plt.grid(True)
     plt.show()
 
-# Run the simulation
 run_simulation()
